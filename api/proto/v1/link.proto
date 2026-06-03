@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package v1;
+
+option go_package = "linkService/api/proto/v1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service LinkService {
+  // Создать короткую ссылку
+  rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse) {
+    option (google.api.http) = {
+      post: "/v1/links"
+      body: "*"
+    };
+  }
+
+  // Получить оригинальную ссылку (увеличивает visits)
+  rpc GetLink(GetLinkRequest) returns (GetLinkResponse) {
+    option (google.api.http) = {
+      get: "/v1/links/{short_code}"
+    };
+  }
+
+  // Список ссылок
+  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse) {
+    option (google.api.http) = {
+      get: "/v1/links"
+    };
+  }
+
+  // Удалить ссылку
+  rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse) {
+    option (google.api.http) = {
+      delete: "/v1/links/{short_code}"
+    };
+  }
+
+  // Статистика
+  rpc GetLinkStats(GetLinkStatsRequest) returns (GetLinkStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/links/{short_code}/stats"
+    };
+  }
+}
+
+// Messages
+message CreateLinkRequest {
+  string url = 1;
+}
+
+message CreateLinkResponse {
+  string short_code = 1;
+}
+
+message GetLinkRequest {
+  string short_code = 1;
+}
+
+message GetLinkResponse {
+  string url = 1;
+  int32 visits = 2;
+}
+
+message ListLinksRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message ListLinksResponse {
+  repeated Link items = 1;
+  int32 total = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message DeleteLinkRequest {
+  string short_code = 1;
+}
+
+message DeleteLinkResponse {}
+
+message GetLinkStatsRequest {
+  string short_code = 1;
+}
+
+message GetLinkStatsResponse {
+  string short_code = 1;
+  string url = 2;
+  int32 visits = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message Link {
+  int32 id = 1;
+  string short_code = 2;
+  string original_url = 3;
+  google.protobuf.Timestamp created_at = 4;
+  int32 visits = 5;
+}
