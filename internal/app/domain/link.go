@@ -9,3 +9,16 @@ type Link struct {
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 	Visits      int       `db:"visits" json:"visits"`
 }
+
+func (l *Link) IncementVisits() {
+	l.Visits++
+}
+
+type CreateLinkInput struct {
+	Url string
+}
+
+type ListLinksInput struct {
+	Limit  int
+	Offset int
+}

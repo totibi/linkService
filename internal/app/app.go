@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"linkService/internal/app/http_handlers"
+	"linkService/internal/app/handler"
 	"log/slog"
 	"net"
 	"net/http"
@@ -23,14 +23,14 @@ import (
 )
 
 type App struct {
-	Config *config.Config
+	config *config.Config
 
-	DBPool *pgxpool.Pool
+	dBPool *pgxpool.Pool
 
-	LinkService *service.AppLinkService
-
-	grpcServer *grpc.Server
-	httpServer *http.Server
+	linkService     *service.AppLinkService
+	grpcLinkHandler *handler.LinkHandler
+	grpcServer      *grpc.Server
+	httpServer      *http.Server
 
 	grpcListener net.Listener
 }
@@ -45,10 +45,13 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	linkService := service.NewAppLinkService(repo)
 
+	grpcLinkHandler := handler.NewLinkHandler(linkService)
+
 	app := &App{
-		Config:      cfg,
-		DBPool:      dbPool,
-		LinkService: linkService,
+		config:          cfg,
+		dBPool:          dbPool,
+		linkService:     linkService,
+		grpcLinkHandler: grpcLinkHandler,
 	}
 
 	if err := app.buildServers(); err != nil {
@@ -62,7 +65,7 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 func (a *App) buildServers() error {
 	a.grpcServer = newGrpcServer(a)
 
-	gateway, err := newGateway(a.Config)
+	gateway, err := newGateway(a.config)
 	if err != nil {
 		return err
 	}
@@ -70,13 +73,13 @@ func (a *App) buildServers() error {
 	httpMux := newHTTPMux(gateway)
 
 	a.httpServer = &http.Server{
-		Addr:    fmt.Sprintf(":%d", a.Config.HTTP.Port),
+		Addr:    fmt.Sprintf(":%d", a.config.HTTP.Port),
 		Handler: httpMux,
 	}
 
 	listener, err := net.Listen(
 		"tcp",
-		fmt.Sprintf(":%d", a.Config.GRPC.Port),
+		fmt.Sprintf(":%d", a.config.GRPC.Port),
 	)
 	if err != nil {
 		return err
@@ -96,7 +99,7 @@ func newGrpcServer(app *App) *grpc.Server {
 
 	linkServicePb.RegisterLinkServiceServer(
 		server,
-		app.LinkService,
+		app.grpcLinkHandler,
 	)
 
 	return server
@@ -141,7 +144,7 @@ func newHTTPMux(gw *grpcGatewayRt.ServeMux) *http.ServeMux {
 		logging.HttpLoggingMiddleware(gw),
 	)
 
-	http_handlers.RegisterSwaggerRoutes(mux)
+	handler.RegisterSwaggerRoutes(mux)
 
 	return mux
 }
@@ -151,13 +154,13 @@ func (a *App) Start() error {
 	slog.Info(
 		"application starting",
 		"http_port",
-		a.Config.HTTP.Port,
+		a.config.HTTP.Port,
 		"grpc_port",
-		a.Config.GRPC.Port,
+		a.config.GRPC.Port,
 		"swagger_url",
 		fmt.Sprintf(
 			"http://localhost:%d/swagger/",
-			a.Config.HTTP.Port,
+			a.config.HTTP.Port,
 		),
 	)
 
@@ -189,12 +192,12 @@ func (a *App) Start() error {
 func (a *App) Close() {
 	slog.Info("closing resources")
 
-	if a.LinkService != nil {
-		a.LinkService.Close()
+	if a.linkService != nil {
+		a.linkService.Close()
 	}
 
-	if a.DBPool != nil {
-		a.DBPool.Close()
+	if a.dBPool != nil {
+		a.dBPool.Close()
 		slog.Info("dbpool is closed")
 	}
 }
