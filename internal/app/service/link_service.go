@@ -26,11 +26,12 @@ func NewAppLinkService(repo domain.LinkRepository) *AppLinkService {
 	}
 }
 
-// генерация случайно кода на основе случайного выбора 8-ми символов.
+// генерация случайно кода на основе случайного выбора символов.
 // Не продуктовое решение, т.к. есть вероятность коллизей
 func generateShortCode() string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, 8)
+	const shortCodeSize = 8
+	b := make([]byte, shortCodeSize)
 	for i := range b {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
@@ -41,8 +42,8 @@ func validateURL(rawURL string) error {
 	if rawURL == "" {
 		return domain.ErrInvalidURL
 	}
-	// Защита от переполнения полей БД / DoS
-	if len(rawURL) > 2048 {
+	const dbMaxTextSize = 2048
+	if len(rawURL) > dbMaxTextSize {
 		return domain.ErrInvalidURL
 	}
 

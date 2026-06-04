@@ -22,7 +22,7 @@ go.sum
 vendor/
 
 # Generated
-generated/go/
+generated
 *.swagger.json
 swagger
 

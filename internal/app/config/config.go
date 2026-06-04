@@ -20,7 +20,7 @@ type Config struct {
 }
 
 // при указывании файла делаем overload environment из файла
-// итоговый конфигурации вычисляются следующим приоритетом env file > env os > default
+// итоговый конфигурации вычисляются следующим приоритетом env file > OS env > default value
 func Load(envFile string) (*Config, error) {
 	if envFile != "" {
 		if err := godotenv.Overload(envFile); err != nil {

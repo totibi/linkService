@@ -110,4 +110,5 @@ func (c *linkCache) delete(code string) {
 // Stop останавливает фоновую очистку (для graceful shutdown)
 func (c *linkCache) Stop() {
 	close(c.stopCh)
+	slog.Info("cache clearing stopped")
 }
